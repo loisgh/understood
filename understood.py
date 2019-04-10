@@ -49,7 +49,7 @@ def main():
     random_links = {}
     random_pages_chosen = 1
     count = 1
-    while random_pages_chosen < 4:
+    while random_pages_chosen < 1001:
         first_page = None
         next_link_to_grab = 'https://en.wikipedia.org/wiki/Special:Random'
         philosophy = False
