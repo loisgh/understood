@@ -1,12 +1,15 @@
 from bs4 import BeautifulSoup
 import urllib3
 import time
+import pprint
 
-#TODO write out files   (Maybe Tonight, definitely
+#TODO write out files with first_link last_link before Philosopy total
 
-def parse_html(data, myfile):
-    for idx, p in enumerate(data):
+
+def parse_html(data):
+    for p in data:
         we_should_return = False
+        #hatnote is class with font set to italic
         if p.get('class') != 'hatnote':
             links = p.find_all('a', href=True)
             if links:
@@ -20,51 +23,47 @@ def parse_html(data, myfile):
                     elif '(' and ')' in link.get('title'):
                         continue
                     else:
-                        we_should_return = True;
+                        we_should_return = True
+                        links_dict[link] = 1
+                        print(link)
                         break
 
         if we_should_return:
-            print(link)
-            links_dict[link] = 1
-            output = "<a href={}, title={}>{}</a>\n".format(link.get("href"), link.get("title"), link.get("title"))
-            myfile.write(output)
             return link
 
-def get_html_page_for_parsing(in_url):
-    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-    http = urllib3.PoolManager()
+def get_html_page_for_parsing(in_url, first_page):
     page = http.request('GET', in_url)
-    # if in_url.endswith("Special:Random"):
-    #     first_url = page.geturl()
-    #     links_dict[first_url] = 1
-    # else:
-    #     first_url = None
+    if not first_page:
+        first_page = page.geturl()
     soup = BeautifulSoup(page.data, features="html.parser")
     data = soup.find_all('p')
-    return (data)
+    return (data, first_page)
 
 def main():
+    first_page = None
     next_link_to_grab = 'https://en.wikipedia.org/wiki/Special:Random'
     philosophy = False
     count = 1
     myfile =  open("pages.out.txt", 'w')
     while not philosophy:
-        data = get_html_page_for_parsing(next_link_to_grab)
-        # if first_url:
-        #     myfile.write("<a href={}</a>\n".format(first_url))
-        next_link_to_grab = parse_html(data, myfile)
+        data, first_page = get_html_page_for_parsing(next_link_to_grab, first_page)
+        next_link_to_grab = parse_html(data)
         count += 1
         if count > 100:
-            print("We could not find the philosphy age after 100 lookups")
+            print("We could not find the philosphy page after 100 lookups")
             break
         if next_link_to_grab.get('title') == "Philosophy":
             philosophy = "True"
             print("We needed to clickthrough {} links to get to the philosphy page".format(count))
+            output= "{},{}".format(first_page, count)
+            myfile.write(output)
             myfile.close()
         else:
             time.sleep(2)       #Throttle requests so that wikipedia will not stop serving pages to you
             next_link_to_grab = "https://en.wikipedia.org" + next_link_to_grab.get('href')
 
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+http = urllib3.PoolManager()
 links_dict = {}
 main()
 
